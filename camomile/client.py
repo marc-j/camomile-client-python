@@ -34,6 +34,7 @@
 import tortilla
 import requests
 from getpass import getpass
+from sseclient import SSEClient
 
 
 # Decorator catching HTTPErrors and replacing the generic error message
@@ -108,6 +109,7 @@ class Camomile(object):
         # internally rely on tortilla generic API wrapper
         # see http://github.com/redodo/tortilla
         self._api = tortilla.wrap(url, format='json', delay=delay, debug=debug)
+        self._url = url;
 
         # log in if `username` is provided
         if username:
@@ -1453,9 +1455,67 @@ class Camomile(object):
         return self.getQueuePermissions(queue)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # SSE
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    @catchCamomileError
+    def startListener(self):
+        datas = self._api.listen.post();
+        
+        sseClient = SSEClient("%s/listen/%s" % (self._url, datas.channel_id))
+        return SSEChannel(self._api, datas.channel_id, sseClient)
+    
+
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # UTILS
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     @catchCamomileError
     def getDate(self):
         return self._api.date.get()
+
+
+class SSEChannel():
+    def __init__(self, api, channel_id, sseClient):
+        self._api = api
+        self._channel_id = channel_id
+        self._sseClient = sseClient
+        
+    @catchCamomileError
+    def watchCorpus(self, corpus_id):
+        return self._api.listen(self._channel_id).corpus(corpus_id).put()
+    
+    @catchCamomileError
+    def unwatchCorpus(self, corpus_id):
+        return self._api.listen(self._channel_id).corpus(corpus_id).delete()
+    
+    
+    @catchCamomileError
+    def watchLayer(self, layer_id):
+        return self._api.listen(self._channel_id).layer(layer_id).put()
+    
+    @catchCamomileError
+    def unwatchLayer(self, layer_id):
+        return self._api.listen(self._channel_id).layer(layer_id).delete()
+    
+    
+    @catchCamomileError
+    def watchMedium(self, medium_id):
+        return self._api.listen(self._channel_id).medium(medium_id).put()
+    
+    @catchCamomileError
+    def unwatchMedium(self, medium_id):
+        return self._api.listen(self._channel_id).medium(medium_id).delete()
+    
+    
+    @catchCamomileError
+    def watchQueue(self, queue_id):
+        return self._api.listen(self._channel_id).queue(queue_id).put()
+    
+    @catchCamomileError
+    def unwatchQueue(self, queue_id):
+        return self._api.listen(self._channel_id).queue(queue_id).delete()
+    
+    def messages(self):
+        return self._sseClient
