@@ -33,6 +33,8 @@
 
 import tortilla
 import requests
+import os
+
 from getpass import getpass
 from sseclient import SSEClient
 
@@ -1454,6 +1456,288 @@ class Camomile(object):
 
         return self.getQueuePermissions(queue)
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # METADATA (Corpus, Layer, Medium)
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    #
+    # CORPUS
+    
+    @catchCamomileError
+    def getCorpusMetadata(self, corpus, path=None):
+        """Get Corpus metadatas
+
+        Parameters
+        ----------
+        corpus : str
+            corpus ID
+        path : str, optional
+            metadata path
+
+        Returns
+        -------
+        metadatas : dict
+            Coprus metadatas
+        """
+        return self.__getMetadata(self._corpus(corpus), path)
+        
+    @catchCamomileError
+    def getCorpusMetadataKeys(self, corpus, path=None):
+        """Get Corpus metadatas first level keys
+
+        Parameters
+        ----------
+        corpus : str
+            corpus ID
+        path : str, optional
+            metadata path
+
+        Returns
+        -------
+        keys : List
+            Corpus metadatas first level keys
+        """
+        return self.__getMetadataKeys(self._corpus(corpus), path)
+        
+    @catchCamomileError
+    def setCorpusMetadata(self, corpus, datas):
+        """Set Corpus metadatas
+
+        Parameters
+        ----------
+        corpus : str
+            corpus ID
+        datas : dict
+            metadatas
+        """
+        return self.__setMetadata(self._corpus(corpus), datas)
+        
+    @catchCamomileError
+    def sendCorpusMetadataFile(self, corpus, path, filepath):
+        """Send corpus metadata file
+
+        Parameters
+        ----------
+        corpus : str
+            corpus ID
+        path : str
+            metadata path
+        filepath : str
+            metadata filepath
+        """
+        return self.__sendMetadataFile(self._corpus(corpus), path, filepath)
+    
+    @catchCamomileError
+    def deleteCorpusMetadata(self, corpus, path):
+        """Delete Corpus metadatas
+
+        Parameters
+        ----------
+        corpus : str
+            corpus ID
+        path : str
+            delete path
+        """
+        print self.__deleteMetadata(self._corpus(corpus), path)
+    
+    #
+    # LAYER
+    @catchCamomileError
+    def getLayerMetadata(self, layer, path=None):
+        """Get Layer metadatas
+
+        Parameters
+        ----------
+        layer : str
+            layer ID
+        path : str, optional
+            metadata path
+
+        Returns
+        -------
+        metadatas : dict
+            Layer metadatas
+        """
+        return self.__getMetadata(self._layer(layer), path)
+        
+    @catchCamomileError
+    def getLayerMetadataKeys(self, layer, path=None):
+        """Get Layer metadatas first level keys
+
+        Parameters
+        ----------
+        layer : str
+            layer ID
+        path : str, optional
+            metadata path
+
+        Returns
+        -------
+        keys : List
+            Layer metadatas first level keys
+        """
+        return self.__getMetadataKeys(self._layer(layer), path)
+        
+    @catchCamomileError
+    def setLayerMetadata(self, layer, datas):
+        """Set Layer metadatas
+
+        Parameters
+        ----------
+        layer : str
+            layer ID
+        datas : dict
+            metadatas
+        """
+        return self.__setMetadata(self._layer(layer), datas)
+        
+    @catchCamomileError
+    def sendLayerMetadataFile(self, layer, path, filepath):
+        """Send layer metadata file
+
+        Parameters
+        ----------
+        layer : str
+            layer ID
+        path : str
+            metadata path
+        filepath : str
+            metadata filepath
+        """
+        return self.__sendMetadataFile(self._layer(layer), path, filepath)
+    
+    @catchCamomileError
+    def deleteLayerMetadata(self, layer, path):
+        """Delete Layer metadatas
+
+        Parameters
+        ----------
+        layer : str
+            layer ID
+        path : str
+            delete path
+        """
+        print self.__deleteMetadata(self._layer(layer), path)
+    
+    #
+    # MEDIUM
+    @catchCamomileError
+    def getMediumMetadata(self, medium, path=None):
+        """Get Medium metadatas
+
+        Parameters
+        ----------
+        medium : str
+            medium ID
+        path : str, optional
+            metadata path
+
+        Returns
+        -------
+        metadatas : dict
+            Medium metadatas
+        """
+        return self.__getMetadata(self._medium(medium), path)
+    
+    @catchCamomileError     
+    def getMediumMetadataKeys(self, medium, path=None):
+        """Get Medium metadatas first level keys
+
+        Parameters
+        ----------
+        medium : str
+            medium ID
+        path : str, optional
+            metadata path
+
+        Returns
+        -------
+        keys : List
+            Medium metadatas first level keys
+        """
+        return self.__getMetadataKeys(self._medium(medium), path)
+       
+    @catchCamomileError 
+    def setMediumMetadata(self, medium, datas):
+        """Set Medium metadatas
+
+        Parameters
+        ----------
+        medium : str
+            medium ID
+        datas : dict
+            metadatas
+        """
+        return self.__setMetadata(self._medium(medium), datas)
+       
+    @catchCamomileError 
+    def sendMediumMetadataFile(self, medium, path, filepath):
+        """Send medium metadata file
+
+        Parameters
+        ----------
+        medium : str
+            medium ID
+        path : str
+            metadata path
+        filepath : str
+            metadata filepath
+        """
+        return self.__sendMetadataFile(self._medium(medium), path, filepath)
+    
+    @catchCamomileError
+    def deleteMediumMetadata(self, medium, path):
+        """Delete Medium metadatas
+
+        Parameters
+        ----------
+        medium : str
+            medium ID
+        path : str
+            delete path
+        """
+        print self.__deleteMetadata(self._medium(medium), path)
+
+    #
+    # PRIVATE METHODS
+    def __getMetadata(self, resource,path=None):
+        if path is None: 
+            return resource.metadata().get()
+        
+        return resource.metadata(path).get()
+        
+    def __getMetadataKeys(self, resource, path=None):
+        if path is None: 
+            return resource.metadata().get()
+        
+        return resource.metadata(path + '.').get()
+        
+    def __setMetadata(self, resource, datas):
+        return resource.metadata().post(data=datas)
+    
+    def __sendMetadataFile(self, resource, path, filepath):
+        with open(filepath, "rb") as f:
+            data = f.read()
+            b64 = data.encode("base64")
+            paths = path.split('.')
+            datas = {}
+            accessor = datas
+            for i in xrange(len(paths)):
+                accessor[paths[i]] = {}
+                if i == len(paths) -1:
+                    accessor[paths[i]] = {
+                        'type': 'file',
+                        'filename': os.path.basename(filepath),
+                        'data': b64
+                    }
+                else:
+                    accessor = accessor[paths[i]]
+            
+        return resource.metadata().post(data=datas)
+    
+    def __deleteMetadata(self, resource, path):
+        return resource.metadata(path).delete()
+    
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # SSE
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
