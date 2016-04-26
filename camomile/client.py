@@ -34,6 +34,8 @@
 import tortilla
 import requests
 import os
+import threading
+import json
 
 from getpass import getpass
 from sseclient import SSEClient
@@ -112,6 +114,7 @@ class Camomile(object):
         # see http://github.com/redodo/tortilla
         self._api = tortilla.wrap(url, format='json', delay=delay, debug=debug)
         self._url = url;
+        self._listenerCallbacks = {}
 
         # log in if `username` is provided
         if username:
@@ -200,7 +203,15 @@ class Camomile(object):
 
         data = {'username': username,
                 'password': password}
-        return self._api.login.post(data=data)
+        
+        result = self._api.login.post(data=data)
+        
+        if 'success' in result:
+            self._sseClient = self.startListener()
+            self._thread = threading.Thread(None, self.__listener, None)
+            self._thread.start()
+        
+        return result
 
     @catchCamomileError
     def logout(self):
@@ -1538,7 +1549,7 @@ class Camomile(object):
         path : str
             delete path
         """
-        print self.__deleteMetadata(self._corpus(corpus), path)
+        return self.__deleteMetadata(self._corpus(corpus), path)
     
     #
     # LAYER
@@ -1617,7 +1628,7 @@ class Camomile(object):
         path : str
             delete path
         """
-        print self.__deleteMetadata(self._layer(layer), path)
+        return self.__deleteMetadata(self._layer(layer), path)
     
     #
     # MEDIUM
@@ -1696,7 +1707,7 @@ class Camomile(object):
         path : str
             delete path
         """
-        print self.__deleteMetadata(self._medium(medium), path)
+        return self.__deleteMetadata(self._medium(medium), path)
 
     #
     # PRIVATE METHODS
@@ -1745,10 +1756,72 @@ class Camomile(object):
     @catchCamomileError
     def startListener(self):
         datas = self._api.listen.post();
-        
-        sseClient = SSEClient("%s/listen/%s" % (self._url, datas.channel_id))
-        return SSEChannel(self._api, datas.channel_id, sseClient)
+        self._channel_id = datas.channel_id
+        return SSEClient("%s/listen/%s" % (self._url, self._channel_id))
+        #return SSEChannel(self._api, datas.channel_id, sseClient)
+
+    def __listener(self):
+        for msg in self._sseClient:
+          if msg.event in self._listenerCallbacks:
+              self._listenerCallbacks[msg.event](json.loads(msg.data)['event'])
+        pass
     
+    @catchCamomileError
+    def watchCorpus(self, corpus_id, callback):
+        result = self._api.listen(self._channel_id).corpus(corpus_id).put()
+        if 'event' in result:
+            self._listenerCallbacks['corpus:' + corpus_id] = callback
+        return result
+    
+    @catchCamomileError
+    def unwatchCorpus(self, corpus_id):
+        result = self._api.listen(self._channel_id).corpus(corpus_id).delete()
+        if 'success' in result:
+            del self._listenerCallbacks['corpus:' + corpus_id]
+        return result
+    
+    @catchCamomileError
+    def watchLayer(self, layer_id, callback):
+        result = self._api.listen(self._channel_id).layer(layer_id).put()
+        if 'event' in result:
+            self._listenerCallbacks['layer:' + layer_id] = callback
+        return result
+    
+    @catchCamomileError
+    def unwatchLayer(self, layer_id):
+        result = self._api.listen(self._channel_id).layer(layer_id).delete()
+        if 'success' in result:
+            del self._listenerCallbacks['layer:' + layer_id]
+        return result
+    
+    @catchCamomileError
+    def watchMedium(self, medium_id, callback):
+        result = self._api.listen(self._channel_id).medium(medium_id).put()
+        if 'event' in result:
+            self._listenerCallbacks['medium:' + medium_id] = callback
+        return result
+    
+    @catchCamomileError
+    def unwatchMedium(self, medium_id):
+        result = self._api.listen(self._channel_id).medium(medium_id).delete()
+        if 'success' in result:
+            del self._listenerCallbacks['medium:' + medium_id]
+        return result
+    
+    
+    @catchCamomileError
+    def watchQueue(self, queue_id, callback):
+        result = self._api.listen(self._channel_id).queue(queue_id).put()
+        if 'event' in result:
+            self._listenerCallbacks['queue:' + queue_id] = callback
+        return result
+    
+    @catchCamomileError
+    def unwatchQueue(self, queue_id):
+        result = self._api.listen(self._channel_id).queue(queue_id).delete()
+        if 'success' in result:
+            del self._listenerCallbacks['queue:' + queue_id]
+        return result
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1758,48 +1831,3 @@ class Camomile(object):
     @catchCamomileError
     def getDate(self):
         return self._api.date.get()
-
-
-class SSEChannel():
-    def __init__(self, api, channel_id, sseClient):
-        self._api = api
-        self._channel_id = channel_id
-        self._sseClient = sseClient
-        
-    @catchCamomileError
-    def watchCorpus(self, corpus_id):
-        return self._api.listen(self._channel_id).corpus(corpus_id).put()
-    
-    @catchCamomileError
-    def unwatchCorpus(self, corpus_id):
-        return self._api.listen(self._channel_id).corpus(corpus_id).delete()
-    
-    
-    @catchCamomileError
-    def watchLayer(self, layer_id):
-        return self._api.listen(self._channel_id).layer(layer_id).put()
-    
-    @catchCamomileError
-    def unwatchLayer(self, layer_id):
-        return self._api.listen(self._channel_id).layer(layer_id).delete()
-    
-    
-    @catchCamomileError
-    def watchMedium(self, medium_id):
-        return self._api.listen(self._channel_id).medium(medium_id).put()
-    
-    @catchCamomileError
-    def unwatchMedium(self, medium_id):
-        return self._api.listen(self._channel_id).medium(medium_id).delete()
-    
-    
-    @catchCamomileError
-    def watchQueue(self, queue_id):
-        return self._api.listen(self._channel_id).queue(queue_id).put()
-    
-    @catchCamomileError
-    def unwatchQueue(self, queue_id):
-        return self._api.listen(self._channel_id).queue(queue_id).delete()
-    
-    def messages(self):
-        return self._sseClient
