@@ -209,6 +209,7 @@ class Camomile(object):
         if 'success' in result:
             self._sseClient = self.startListener()
             self._thread = threading.Thread(None, self.__listener, None)
+            self._thread.daemon = True
             self._thread.start()
         
         return result
