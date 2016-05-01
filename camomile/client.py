@@ -208,7 +208,7 @@ class Camomile(object):
         
         if 'success' in result:
             self._sseClient = self.startListener()
-            self._thread = threading.Thread(None, self.__listener, None)
+            self._thread = threading.Thread(target=self.__listener, name="SSEClient")
             self._thread.daemon = True
             self._thread.start()
         
@@ -1759,7 +1759,6 @@ class Camomile(object):
         datas = self._api.listen.post();
         self._channel_id = datas.channel_id
         return SSEClient("%s/listen/%s" % (self._url, self._channel_id))
-        #return SSEChannel(self._api, datas.channel_id, sseClient)
 
     def __listener(self):
         for msg in self._sseClient:
