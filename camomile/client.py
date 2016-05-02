@@ -1510,7 +1510,7 @@ class Camomile(object):
         return self.__getMetadataKeys(self._corpus(corpus), path)
         
     @catchCamomileError
-    def setCorpusMetadata(self, corpus, datas):
+    def setCorpusMetadata(self, corpus, datas, path=None):
         """Set Corpus metadatas
 
         Parameters
@@ -1520,7 +1520,7 @@ class Camomile(object):
         datas : dict
             metadatas
         """
-        return self.__setMetadata(self._corpus(corpus), datas)
+        return self.__setMetadata(self._corpus(corpus), datas, path)
         
     @catchCamomileError
     def sendCorpusMetadataFile(self, corpus, path, filepath):
@@ -1589,7 +1589,7 @@ class Camomile(object):
         return self.__getMetadataKeys(self._layer(layer), path)
         
     @catchCamomileError
-    def setLayerMetadata(self, layer, datas):
+    def setLayerMetadata(self, layer, datas, path=None):
         """Set Layer metadatas
 
         Parameters
@@ -1599,7 +1599,7 @@ class Camomile(object):
         datas : dict
             metadatas
         """
-        return self.__setMetadata(self._layer(layer), datas)
+        return self.__setMetadata(self._layer(layer), datas, path)
         
     @catchCamomileError
     def sendLayerMetadataFile(self, layer, path, filepath):
@@ -1668,7 +1668,7 @@ class Camomile(object):
         return self.__getMetadataKeys(self._medium(medium), path)
        
     @catchCamomileError 
-    def setMediumMetadata(self, medium, datas):
+    def setMediumMetadata(self, medium, datas, path=None):
         """Set Medium metadatas
 
         Parameters
@@ -1678,7 +1678,7 @@ class Camomile(object):
         datas : dict
             metadatas
         """
-        return self.__setMetadata(self._medium(medium), datas)
+        return self.__setMetadata(self._medium(medium), datas, path)
        
     @catchCamomileError 
     def sendMediumMetadataFile(self, medium, path, filepath):
@@ -1722,7 +1722,19 @@ class Camomile(object):
         
         return resource.metadata(path + '.').get()
         
-    def __setMetadata(self, resource, datas):
+    def __setMetadata(self, resource, datas, path=None):
+        if path != None:
+            paths = path.split('.')
+            newDatas = {}
+            accessor = newDatas
+            for i in xrange(len(paths)):
+                accessor[paths[i]] = {}
+                if i == len(paths) -1:
+                    accessor[paths[i]] = datas
+                else:
+                    accessor = accessor[paths[i]]
+            datas = newDatas;
+        
         return resource.metadata().post(data=datas)
     
     def __sendMetadataFile(self, resource, path, filepath):
