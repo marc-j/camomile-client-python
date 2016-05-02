@@ -115,6 +115,7 @@ class Camomile(object):
         self._api = tortilla.wrap(url, format='json', delay=delay, debug=debug)
         self._url = url;
         self._listenerCallbacks = {}
+        self._thread = None
 
         # log in if `username` is provided
         if username:
@@ -204,19 +205,16 @@ class Camomile(object):
         data = {'username': username,
                 'password': password}
         
-        result = self._api.login.post(data=data)
-        
-        if 'success' in result:
-            self._sseClient = self.startListener()
-            self._thread = threading.Thread(target=self.__listener, name="SSEClient")
-            self._thread.daemon = True
-            self._thread.start()
-        
-        return result
+        return self._api.login.post(data=data)
 
     @catchCamomileError
     def logout(self):
         """Logout"""
+        
+        if self._thread:
+           self._thread.isRun = False
+           self._thread = None
+            
         return self._api.logout.post()
 
     @catchCamomileError
@@ -1753,21 +1751,32 @@ class Camomile(object):
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # SSE
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
     @catchCamomileError
-    def startListener(self):
-        datas = self._api.listen.post();
-        self._channel_id = datas.channel_id
-        return SSEClient("%s/listen/%s" % (self._url, self._channel_id))
+    def __startListener(self):
+        if self._thread == None:
+            datas = self._api.listen.post();
+            self._channel_id = datas.channel_id
+            self._sseClient = SSEClient("%s/listen/%s" % (self._url, self._channel_id))
+            self._thread = threading.Thread(target=self.__listener, name="SSEClient")
+            self._thread.isRun = True
+            self._thread.daemon = True
+            self._thread.start()
+        pass
+        
 
     def __listener(self):
+        t = threading.currentThread()
         for msg in self._sseClient:
+          if not t.isRun:
+              break;
+          
           if msg.event in self._listenerCallbacks:
               self._listenerCallbacks[msg.event](json.loads(msg.data)['event'])
         pass
     
     @catchCamomileError
     def watchCorpus(self, corpus_id, callback):
+        self.__startListener()
         result = self._api.listen(self._channel_id).corpus(corpus_id).put()
         if 'event' in result:
             self._listenerCallbacks['corpus:' + corpus_id] = callback
@@ -1782,6 +1791,7 @@ class Camomile(object):
     
     @catchCamomileError
     def watchLayer(self, layer_id, callback):
+        self.__startListener()
         result = self._api.listen(self._channel_id).layer(layer_id).put()
         if 'event' in result:
             self._listenerCallbacks['layer:' + layer_id] = callback
@@ -1796,6 +1806,7 @@ class Camomile(object):
     
     @catchCamomileError
     def watchMedium(self, medium_id, callback):
+        self.__startListener()
         result = self._api.listen(self._channel_id).medium(medium_id).put()
         if 'event' in result:
             self._listenerCallbacks['medium:' + medium_id] = callback
@@ -1811,6 +1822,7 @@ class Camomile(object):
     
     @catchCamomileError
     def watchQueue(self, queue_id, callback):
+        self.__startListener()
         result = self._api.listen(self._channel_id).queue(queue_id).put()
         if 'event' in result:
             self._listenerCallbacks['queue:' + queue_id] = callback
