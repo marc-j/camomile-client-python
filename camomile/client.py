@@ -1677,6 +1677,8 @@ class Camomile(object):
             medium ID
         datas : dict
             metadatas
+        path : str, optional
+            metadata path
         """
         return self.__setMetadata(self._medium(medium), datas, path)
        
@@ -1788,6 +1790,19 @@ class Camomile(object):
     
     @catchCamomileError
     def watchCorpus(self, corpus_id, callback):
+        """ Watch corpus for: 
+        
+        - Add and Remove medium `{'corpus': {:corpus}, 'event': {'add_medium': {:medium}}}`
+        - Add and Remove layer `{'corpus': {:corpus}, 'event': {'add_layer': {:layer}}}` 
+        - Update corpus attributes `{'corpus': {:corpus}, 'event': {'update': ['description', 'name']}}}`
+        
+        Parameters
+        ----------
+        corpus_id : str
+            corpus ID
+        callback : function
+            callback function
+        """
         self.__startListener()
         result = self._api.listen(self._channel_id).corpus(corpus_id).put()
         if 'event' in result:
@@ -1796,6 +1811,13 @@ class Camomile(object):
     
     @catchCamomileError
     def unwatchCorpus(self, corpus_id):
+        """ UnWatch corpus
+        
+        Parameters
+        ----------
+        corpus_id : str
+            corpus ID
+        """  
         result = self._api.listen(self._channel_id).corpus(corpus_id).delete()
         if 'success' in result:
             del self._listenerCallbacks['corpus:' + corpus_id]
@@ -1803,6 +1825,18 @@ class Camomile(object):
     
     @catchCamomileError
     def watchLayer(self, layer_id, callback):
+        """ Watch layer for: 
+        
+        - Add and Remove annotation `{'layer': {:layer}, 'event': {'add_annotation': {:annotation}}}` 
+        - Update layer attributes `{'layer': {:layer}, 'event': {'update': ['name']}}}`
+        
+        Parameters
+        ----------
+        layer_id : str
+            layer ID
+        callback : function
+            callback function
+        """        
         self.__startListener()
         result = self._api.listen(self._channel_id).layer(layer_id).put()
         if 'event' in result:
@@ -1811,6 +1845,13 @@ class Camomile(object):
     
     @catchCamomileError
     def unwatchLayer(self, layer_id):
+        """ UnWatch layer
+        
+        Parameters
+        ----------
+        layer_id : str
+            layer ID
+        """  
         result = self._api.listen(self._channel_id).layer(layer_id).delete()
         if 'success' in result:
             del self._listenerCallbacks['layer:' + layer_id]
@@ -1818,6 +1859,17 @@ class Camomile(object):
     
     @catchCamomileError
     def watchMedium(self, medium_id, callback):
+        """ Watch medium for: 
+
+        - Update medium attributes `{'medium': {:medium}, 'event': {'update': ['url']}}}`
+        
+        Parameters
+        ----------
+        medium_id : str
+            medium ID
+        callback : function
+            callback function
+        """ 
         self.__startListener()
         result = self._api.listen(self._channel_id).medium(medium_id).put()
         if 'event' in result:
@@ -1826,6 +1878,13 @@ class Camomile(object):
     
     @catchCamomileError
     def unwatchMedium(self, medium_id):
+        """ UnWatch medium
+        
+        Parameters
+        ----------
+        medium_id : str
+            medium ID
+        """  
         result = self._api.listen(self._channel_id).medium(medium_id).delete()
         if 'success' in result:
             del self._listenerCallbacks['medium:' + medium_id]
@@ -1834,6 +1893,18 @@ class Camomile(object):
     
     @catchCamomileError
     def watchQueue(self, queue_id, callback):
+        """ Watch queue for: 
+
+        - Push item in queue `{'queue': {:queue}, 'event': {'push_item': <new_number_of_items_in_queue>}}` 
+        - Pop item in queue `{'queue': {:queue}, 'event': {'pop_item': <new_number_of_items_in_queue>}}`
+        
+        Parameters
+        ----------
+        queue_id : str
+            queue ID
+        callback : function
+            callback function
+        """
         self.__startListener()
         result = self._api.listen(self._channel_id).queue(queue_id).put()
         if 'event' in result:
@@ -1842,6 +1913,13 @@ class Camomile(object):
     
     @catchCamomileError
     def unwatchQueue(self, queue_id):
+        """ UnWatch queue
+        
+        Parameters
+        ----------
+        queue_id : str
+            queue ID
+        """
         result = self._api.listen(self._channel_id).queue(queue_id).delete()
         if 'success' in result:
             del self._listenerCallbacks['queue:' + queue_id]
